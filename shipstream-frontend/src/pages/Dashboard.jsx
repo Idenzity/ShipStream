@@ -1,65 +1,72 @@
-function Register() {
+function Dashboard() {
   return (
-    <div className="auth-page">
+    <div className="dashboard">
 
-      <div className="auth-card">
+      <div className="dashboard-header">
 
-        <h1>Create an account</h1>
+        <div>
+          <p className="eyebrow">
+            SHIPSTREAM DASHBOARD
+          </p>
 
-        <p>
-          Create your ShipStream account.
-        </p>
+          <h1>
+            Welcome back!
+          </h1>
 
-        <form>
+          <p>
+            Here's an overview of your furniture deliveries.
+          </p>
+        </div>
 
-          <div className="form-group">
-            <label>Full Name</label>
+        <a
+          href="/shipments"
+          className="primary-button"
+        >
+          View Shipments
+        </a>
 
-            <input
-              type="text"
-              placeholder="Enter your full name"
-            />
+      </div>
+
+
+      <div className="stats">
+
+        <div className="stat-card">
+          <h3>3</h3>
+          <p>Active Deliveries</p>
+        </div>
+
+        <div className="stat-card">
+          <h3>2</h3>
+          <p>In Transit</p>
+        </div>
+
+        <div className="stat-card">
+          <h3>1</h3>
+          <p>Delivered</p>
+        </div>
+
+      </div>
+
+
+      <div className="recent-section">
+
+        <h2>Recent Deliveries</h2>
+
+        <div className="shipment-card">
+
+          <div>
+            <h3>Oak Dining Table</h3>
+
+            <p>
+              Tracking: SS123456789
+            </p>
           </div>
 
-          <div className="form-group">
-            <label>Email</label>
+          <span className="status">
+            In Transit
+          </span>
 
-            <input
-              type="email"
-              placeholder="Enter your email"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Phone Number</label>
-
-            <input
-              type="tel"
-              placeholder="Enter your phone number"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Password</label>
-
-            <input
-              type="password"
-              placeholder="Create a password"
-            />
-          </div>
-
-          <button type="submit">
-            Create Account
-          </button>
-
-        </form>
-
-        <p className="auth-footer">
-          Already have an account?{" "}
-          <a href="/login">
-            Login
-          </a>
-        </p>
+        </div>
 
       </div>
 
@@ -67,4 +74,4 @@ function Register() {
   );
 }
 
-export default Register;
+export default Dashboard;
