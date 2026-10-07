@@ -1,84 +1,51 @@
-import "./index.css";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import Shipments from "./pages/Shipments";
+import ShipmentDetails from "./pages/ShipmentDetails";
 
 function App() {
   return (
-    <div className="app">
+    <BrowserRouter>
 
-      <nav className="navbar">
-        <div className="logo">
-          ShipStream
-        </div>
+      <Routes>
 
-        <div className="nav-links">
-          <a href="#">Home</a>
-          <a href="#">Track Delivery</a>
-          <a href="#">Login</a>
-        </div>
-      </nav>
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-      <main className="hero">
+        <Route
+          path="/register"
+          element={<Register />}
+        />
 
-        <div className="hero-content">
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
 
-          <p className="eyebrow">
-            FURNITURE DELIVERY TRACKING
-          </p>
+        <Route
+          path="/shipments"
+          element={<Shipments />}
+        />
 
-          <h1>
-            Know where your
-            <span> furniture is.</span>
-          </h1>
+        <Route
+          path="/shipments/:id"
+          element={<ShipmentDetails />}
+        />
 
-          <p className="description">
-            ShipStream helps you track your furniture
-            deliveries from pickup to your doorstep.
-          </p>
+      </Routes>
 
-          <div className="hero-buttons">
-            <button className="primary-button">
-              Track a Delivery
-            </button>
-
-            <button className="secondary-button">
-              Create Account
-            </button>
-          </div>
-
-        </div>
-
-      </main>
-
-
-      <section className="features">
-
-        <div className="feature">
-          <h3>Real-Time Tracking</h3>
-          <p>
-            Keep track of your furniture delivery
-            and its current shipping status.
-          </p>
-        </div>
-
-        <div className="feature">
-          <h3>Delivery Updates</h3>
-          <p>
-            View important updates throughout
-            the delivery process.
-          </p>
-        </div>
-
-        <div className="feature">
-          <h3>Easy Management</h3>
-          <p>
-            Manage your deliveries from one
-            simple dashboard.
-          </p>
-        </div>
-
-      </section>
-
-    </div>
+    </BrowserRouter>
   );
 }
 
