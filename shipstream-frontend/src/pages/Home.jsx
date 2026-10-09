@@ -1,5 +1,7 @@
+import { Link } from "react-router-dom";
+
 function Home() {
-  return (
+  return (  
     <div className="home">
 
       <main className="hero">
@@ -22,19 +24,19 @@ function Home() {
 
           <div className="hero-buttons">
 
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="primary-button"
             >
               Track a Delivery
-            </a>
+            </Link>
 
-            <a
-              href="/register"
+            <Link
+              to="/register"
               className="secondary-button"
             >
               Create Account
-            </a>
+            </Link>
 
           </div>
 
