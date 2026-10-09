@@ -419,8 +419,14 @@ button {
   margin-bottom: 0 !important;
 }
 
-/* For responsiveness in mobile screens */
+/* for the primary aand secondary buttons */
+.primary-button, .secondary-button {
+  display: inline-block;
 
+  text-decoration: none;
+}
+
+/* For responsiveness in mobile screens */
 @media (max-width: 768px) {
 
   .navbar {
