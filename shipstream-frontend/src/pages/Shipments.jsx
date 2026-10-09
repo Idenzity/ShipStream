@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function Shipments() {
 
   const shipments = [
@@ -66,12 +68,12 @@ function Shipments() {
 
             <br />
 
-            <a
-              href={`/shipments/${shipment.id}`}
+            <Link
+              to={`/shipments/${shipment.id}`}
               className="view-button"
             >
               View Details
-            </a>
+            </Link>
 
           </div>
 

@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function Dashboard() {
   return (
     <div className="dashboard">
@@ -18,12 +20,12 @@ function Dashboard() {
           </p>
         </div>
 
-        <a
-          href="/shipments"
+        <Link
+          to="/shipments"
           className="primary-button"
         >
           View Shipments
-        </a>
+        </Link>
 
       </div>
 
