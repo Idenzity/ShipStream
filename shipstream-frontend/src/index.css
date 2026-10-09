@@ -409,6 +409,16 @@ button {
   color: #9ca3af;
 }
 
+/* for the error messages in forms */
+.error-message {
+  color: #dc2626 !important;
+
+  font-size: 13px;
+
+  margin-top: 6px;
+  margin-bottom: 0 !important;
+}
+
 /* For responsiveness in mobile screens */
 
 @media (max-width: 768px) {
