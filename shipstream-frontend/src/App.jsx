@@ -6,10 +6,13 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Shipments from "./pages/Shipments";
 import ShipmentDetails from "./pages/ShipmentDetails";
+import Navbar from "./components/Navbar";
 
 function App() {
   return (
     <BrowserRouter>
+
+      <Navbar />
 
       <Routes>
 
