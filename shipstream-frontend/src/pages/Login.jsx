@@ -145,10 +145,6 @@ const [isSubmitting, setIsSubmitting] = useState(false);
             )}
 
           </div>
-
-          <button type="submit">
-            Login
-          </button>
           
           {serverError && (
             <p className="error-message" role="alert">
