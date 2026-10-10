@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
 
@@ -39,23 +39,53 @@ function Login() {
     return newErrors;
   };
 
-  const handleSubmit = (event) => {
+const handleSubmit = async (event) => {
+  event.preventDefault();
 
-    event.preventDefault();
+  setServerError("");
 
-    const validationErrors = validateForm();
+  const validationErrors = validateForm();
+  setErrors(validationErrors);
 
-    setErrors(validationErrors);
+  if (Object.keys(validationErrors).length > 0) {
+    return;
+  }
 
-    if (Object.keys(validationErrors).length === 0) {
+  setIsSubmitting(true);
 
-      console.log("Login form submitted:", formData);
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(formData),
+      }
+    );
 
-      alert("Login form is valid!");
+    const data = await response.json();
 
+    if (!response.ok) {
+      throw new Error(data.message || "Login failed.");
     }
 
-  };
+    navigate("/dashboard");
+  } catch (error) {
+    setServerError(
+      error.message || "Unable to connect to the server."
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+const navigate = useNavigate();
+
+const [serverError, setServerError] = useState("");
+const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
     <div className="auth-page">
@@ -119,7 +149,16 @@ function Login() {
           <button type="submit">
             Login
           </button>
+          
+          {serverError && (
+            <p className="error-message" role="alert">
+              {serverError}
+            </p>
+          )}
 
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Logging in..." : "Login"}
+          </button>
         </form>
 
         <p className="auth-footer">

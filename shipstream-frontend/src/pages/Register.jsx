@@ -1,133 +1,137 @@
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Register() {
-
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     phone: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
 
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const navigate = useNavigate();
 
   const handleChange = (event) => {
-
     const { name, value } = event.target;
 
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    setFormData((previousData) => ({
+      ...previousData,
+      [name]: value,
+    }));
 
+    // Clear the field's validation error when the user edits it.
+    setErrors((previousErrors) => ({
+      ...previousErrors,
+      [name]: "",
+    }));
+
+    setServerError("");
   };
 
-
   const validateForm = () => {
-
     const newErrors = {};
 
-
     if (!formData.fullName.trim()) {
-      newErrors.fullName =
-        "Full name is required.";
+      newErrors.fullName = "Full name is required.";
     }
 
-
-    if (!formData.email) {
-      newErrors.email =
-        "Email is required.";
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required.";
+    } else if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+    ) {
+      newErrors.email = "Please enter a valid email.";
     }
-    else if (!formData.email.includes("@")) {
-      newErrors.email =
-        "Please enter a valid email.";
-    }
-
 
     if (!formData.phone.trim()) {
-      newErrors.phone =
-        "Phone number is required.";
+      newErrors.phone = "Phone number is required.";
     }
-
 
     if (!formData.password) {
-      newErrors.password =
-        "Password is required.";
-    }
-    else if (formData.password.length < 8) {
+      newErrors.password = "Password is required.";
+    } else if (formData.password.length < 8) {
       newErrors.password =
         "Password must be at least 8 characters.";
     }
 
-
     if (!formData.confirmPassword) {
       newErrors.confirmPassword =
         "Please confirm your password.";
-    }
-    else if (
-      formData.password !==
-      formData.confirmPassword
+    } else if (
+      formData.password !== formData.confirmPassword
     ) {
       newErrors.confirmPassword =
         "Passwords do not match.";
     }
 
-
     return newErrors;
   };
 
-
-  const handleSubmit = (event) => {
-
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const validationErrors =
-      validateForm();
+    // Prevent duplicate submissions.
+    if (isSubmitting) return;
 
+    setServerError("");
+
+    const validationErrors = validateForm();
     setErrors(validationErrors);
 
-
-    if (
-      Object.keys(validationErrors).length === 0
-    ) {
-
-      console.log(
-        "Registration form submitted:",
-        formData
-      );
-
-      alert(
-        "Registration form is valid!"
-      );
-
+    if (Object.keys(validationErrors).length > 0) {
+      return;
     }
 
-  };
+    setIsSubmitting(true);
 
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Registration failed."
+        );
+      }
+
+      // Registration succeeded.
+      navigate("/dashboard");
+    } catch (error) {
+      setServerError(
+        error.message || "Unable to connect to the server."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="auth-page">
-
       <div className="auth-card">
-
         <h1>Create an account</h1>
 
-        <p>
-          Create your ShipStream account.
-        </p>
-
+        <p>Create your ShipStream account.</p>
 
         <form onSubmit={handleSubmit}>
-
-
           <div className="form-group">
-
-            <label htmlFor="fullName">
-              Full Name
-            </label>
+            <label htmlFor="fullName">Full Name</label>
 
             <input
               id="fullName"
@@ -136,6 +140,8 @@ function Register() {
               value={formData.fullName}
               onChange={handleChange}
               placeholder="Enter your full name"
+              autoComplete="name"
+              required
             />
 
             {errors.fullName && (
@@ -143,15 +149,10 @@ function Register() {
                 {errors.fullName}
               </p>
             )}
-
           </div>
 
-
           <div className="form-group">
-
-            <label htmlFor="email">
-              Email
-            </label>
+            <label htmlFor="email">Email</label>
 
             <input
               id="email"
@@ -160,6 +161,8 @@ function Register() {
               value={formData.email}
               onChange={handleChange}
               placeholder="Enter your email"
+              autoComplete="email"
+              required
             />
 
             {errors.email && (
@@ -167,15 +170,10 @@ function Register() {
                 {errors.email}
               </p>
             )}
-
           </div>
 
-
           <div className="form-group">
-
-            <label htmlFor="phone">
-              Phone Number
-            </label>
+            <label htmlFor="phone">Phone Number</label>
 
             <input
               id="phone"
@@ -184,6 +182,8 @@ function Register() {
               value={formData.phone}
               onChange={handleChange}
               placeholder="Enter your phone number"
+              autoComplete="tel"
+              required
             />
 
             {errors.phone && (
@@ -191,15 +191,10 @@ function Register() {
                 {errors.phone}
               </p>
             )}
-
           </div>
 
-
           <div className="form-group">
-
-            <label htmlFor="password">
-              Password
-            </label>
+            <label htmlFor="password">Password</label>
 
             <input
               id="password"
@@ -208,6 +203,9 @@ function Register() {
               value={formData.password}
               onChange={handleChange}
               placeholder="Create a password"
+              autoComplete="new-password"
+              minLength={8}
+              required
             />
 
             {errors.password && (
@@ -215,12 +213,9 @@ function Register() {
                 {errors.password}
               </p>
             )}
-
           </div>
 
-
           <div className="form-group">
-
             <label htmlFor="confirmPassword">
               Confirm Password
             </label>
@@ -232,6 +227,8 @@ function Register() {
               value={formData.confirmPassword}
               onChange={handleChange}
               placeholder="Confirm your password"
+              autoComplete="new-password"
+              required
             />
 
             {errors.confirmPassword && (
@@ -239,29 +236,25 @@ function Register() {
                 {errors.confirmPassword}
               </p>
             )}
-
           </div>
 
-
-          <button type="submit">
-            Create Account
+          {serverError && (
+            <p className="error-message" role="alert">
+              {serverError}
+            </p>
+          )}
+  
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? "Creating Account..." : "Create Account"}
           </button>
-
         </form>
 
-
         <p className="auth-footer">
-
           Already have an account?{" "}
-
-          <Link to="/login">
-            Login
-          </Link>
-
+          <Link to="/login">Login</Link>
         </p>
-
       </div>
-
     </div>
   );
 }
