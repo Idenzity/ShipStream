@@ -39,6 +39,27 @@ body {
   color: #4f46e5;
 }
 
+.nav-user {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.nav-logout {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  padding: 9px 14px;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.nav-logout:hover {
+  background: rgba(128, 128, 128, 0.12);
+}
+
 /* For the Hero content area */
 
 .hero {
@@ -286,6 +307,10 @@ button {
   color: #64748b;
 }
 
+.dashboard-email {
+  color: #64748b;
+  font-size: 14px;
+}
 
 /* for the Stat cards */
 
@@ -368,7 +393,6 @@ button {
   margin-bottom: 20px;
 }
 
-
 /* for the shipment details page */
 
 .shipment-details {
@@ -424,6 +448,13 @@ button {
   display: inline-block;
 
   text-decoration: none;
+}
+
+/*For loaded pages and not found pages*/
+.loading-page,
+.not-found {
+  padding: 48px 20px;
+  text-align: center;
 }
 
 /* For responsiveness in mobile screens */

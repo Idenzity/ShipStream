@@ -1,6 +1,10 @@
+import { useAuth } from "../context/AuthContext";
+
 import { Link } from "react-router-dom";
 
 function Dashboard() {
+  const { user } = useAuth();
+
   return (
     <div className="dashboard">
 
