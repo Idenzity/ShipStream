@@ -1,11 +1,6 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  createShipment,
-  deleteShipment,
-  getShipments,
-} from "../api/shipments";
+import {createShipment, deleteShipment, getShipments,} from "../api/shipments";
 
 function Shipments() {
   const [shipments, setShipments] = useState([]);
