@@ -322,7 +322,7 @@ app.post("/api/auth/logout", (req, res) => {
   return res.json({ message: "Logged out successfully." });
 });
 
-
+// Shipment status options.
 const allowedStatuses = ["Pending", "Processing", "In Transit", "Out for Delivery", "Delivered", "Delayed", "Cancelled"];
 
 // List shipments owned by the logged-in user.
