@@ -22,8 +22,6 @@ function Navbar() {
 
       <div className="nav-links">
         <Link to="/">Home</Link>
-        
-        // Checks if the user is logged in.
 
         {/*Logged in users will see the dashboard and track deliveries links, as well as their name and a logout button.*/}
         {!isLoading && user && (
