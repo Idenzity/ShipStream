@@ -322,6 +322,215 @@ app.post("/api/auth/logout", (req, res) => {
   return res.json({ message: "Logged out successfully." });
 });
 
+
+const allowedStatuses = ["Pending", "Processing", "In Transit", "Out for Delivery", "Delivered", "Delayed", "Cancelled"];
+
+// List shipments owned by the logged-in user.
+app.get("/api/shipments", requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("shipments")
+      .select("*")
+      .eq("user_id", req.auth.sub)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return res.json({ shipments: data });
+  } catch (error) {
+    console.error("List shipments error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to retrieve shipments.",
+    });
+  }
+});
+
+// Create a shipment for the logged-in user.
+app.post("/api/shipments", requireAuth, async (req, res) => {
+  try {
+    const {
+      furnitureName,
+      description,
+      recipientName,
+      deliveryAddress,
+      carrier,
+      trackingNumber,
+      estimatedDelivery,
+    } = req.body || {};
+
+    if (
+      typeof furnitureName !== "string" ||
+      typeof recipientName !== "string" ||
+      typeof deliveryAddress !== "string"
+    ) {
+      return res.status(400).json({
+        message: "Furniture name, recipient, and delivery address are required.",
+      });
+    }
+
+    const cleanFurnitureName = furnitureName.trim();
+    const cleanRecipientName = recipientName.trim();
+    const cleanAddress = deliveryAddress.trim();
+
+    if (
+      !cleanFurnitureName ||
+      cleanFurnitureName.length > 150 ||
+      !cleanRecipientName ||
+      cleanRecipientName.length > 150 ||
+      !cleanAddress ||
+      cleanAddress.length > 500
+    ) {
+      return res.status(400).json({
+        message: "Please check the required fields and their lengths.",
+      });
+    }
+
+    if (
+      description !== undefined &&
+      (typeof description !== "string" || description.length > 1000)
+    ) {
+      return res.status(400).json({
+        message: "Description must be 1000 characters or fewer.",
+      });
+    }
+
+    if (
+      carrier !== undefined &&
+      (typeof carrier !== "string" || carrier.trim().length > 100)
+    ) {
+      return res.status(400).json({
+        message: "Carrier must be 100 characters or fewer.",
+      });
+    }
+
+    if (
+      trackingNumber !== undefined &&
+      (typeof trackingNumber !== "string" ||
+        trackingNumber.trim().length > 150)
+    ) {
+      return res.status(400).json({
+        message: "Tracking number must be 150 characters or fewer.",
+      });
+    }
+
+    let cleanEstimatedDelivery = null;
+
+    if (estimatedDelivery) {
+      if (
+        typeof estimatedDelivery !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(estimatedDelivery)
+      ) {
+        return res.status(400).json({
+          message: "Estimated delivery must be a valid date.",
+        });
+      }
+
+      const date = new Date(`${estimatedDelivery}T00:00:00.000Z`);
+
+      if (
+        Number.isNaN(date.getTime()) ||
+        date.toISOString().slice(0, 10) !== estimatedDelivery
+      ) {
+        return res.status(400).json({
+          message: "Estimated delivery must be a valid date.",
+        });
+      }
+
+      cleanEstimatedDelivery = estimatedDelivery;
+    }
+
+    const { data, error } = await supabase
+      .from("shipments")
+      .insert({
+        user_id: req.auth.sub,
+        furniture_name: cleanFurnitureName,
+        description: (description || "").trim(),
+        recipient_name: cleanRecipientName,
+        delivery_address: cleanAddress,
+        carrier: (carrier || "Not assigned").trim() || "Not assigned",
+        tracking_number: (trackingNumber || "").trim() || null,
+        estimated_delivery: cleanEstimatedDelivery,
+        status: "Pending",
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    return res.status(201).json({
+      message: "Shipment created successfully.",
+      shipment: data,
+    });
+  } catch (error) {
+    console.error("Create shipment error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to create shipment.",
+    });
+  }
+});
+
+// Get one shipment, but only if the logged-in user owns it.
+app.get("/api/shipments/:id", requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("shipments")
+      .select("*")
+      .eq("id", req.params.id)
+      .eq("user_id", req.auth.sub)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      return res.status(404).json({
+        message: "Shipment not found.",
+      });
+    }
+
+    return res.json({ shipment: data });
+  } catch (error) {
+    console.error("Get shipment error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to retrieve shipment.",
+    });
+  }
+});
+
+// Delete a shipment owned by the logged-in user.
+app.delete("/api/shipments/:id", requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("shipments")
+      .delete()
+      .eq("id", req.params.id)
+      .eq("user_id", req.auth.sub)
+      .select("id")
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      return res.status(404).json({
+        message: "Shipment not found.",
+      });
+    }
+
+    return res.json({
+      message: "Shipment deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete shipment error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to delete shipment.",
+    });
+  }
+});
+
+
 // Handle invalid API routes.
 app.use("/api", (req, res) => {
   res.status(404).json({ message: "API endpoint not found." });
