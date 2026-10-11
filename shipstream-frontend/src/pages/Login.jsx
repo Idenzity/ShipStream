@@ -1,3 +1,5 @@
+import { useAuth } from "../context/AuthContext";
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -72,7 +74,16 @@ const handleSubmit = async (event) => {
       throw new Error(data.message || "Login failed.");
     }
 
+    const loggedInUser = await refreshUser();
+
+    if (!loggedInUser) {
+      throw new Error(
+        "Login succeeded, but your session could not be verified. Please try again."
+      );
+    }
+
     navigate("/dashboard");
+    
   } catch (error) {
     setServerError(
       error.message || "Unable to connect to the server."
@@ -86,6 +97,8 @@ const navigate = useNavigate();
 
 const [serverError, setServerError] = useState("");
 const [isSubmitting, setIsSubmitting] = useState(false);
+
+const { refreshUser } = useAuth();
 
   return (
     <div className="auth-page">

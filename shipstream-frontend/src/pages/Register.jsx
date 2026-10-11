@@ -1,3 +1,4 @@
+import { useAuth } from "../context/AuthContext";
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -106,13 +107,19 @@ function Register() {
       const data = await response.json();
 
       if (!response.ok) {
+        throw new Error(data.message || "Registration failed.");
+      }
+
+      const registeredUser = await refreshUser();
+
+      if (!registeredUser) {
         throw new Error(
-          data.message || "Registration failed."
+          "Your account was created, but your session could not be verified. Please log in."
         );
       }
 
-      // Registration succeeded.
       navigate("/dashboard");
+
     } catch (error) {
       setServerError(
         error.message || "Unable to connect to the server."
