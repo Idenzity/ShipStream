@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 function Register() {
+  const { refreshUser } = useAuth();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",

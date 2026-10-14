@@ -39,3 +39,21 @@ export function deleteShipment(id) {
     method: "DELETE",
   });
 }
+
+export function registerTracking(id) {
+  return request(
+    `/api/shipments/${encodeURIComponent(id)}/register-tracking`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+export function advanceMockTracking(id) {
+  return request(
+    `/api/shipments/${encodeURIComponent(id)}/mock-advance`,
+    {
+      method: "POST"
+    }
+  );
+}

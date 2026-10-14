@@ -11,6 +11,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Shipments from "./pages/Shipments";
 import ShipmentDetails from "./pages/ShipmentDetails";
+import Plans from "./pages/Plans";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
               element={<ShipmentDetails />}
             />
           </Route>
+          <Route path="/plans" element={<Plans />} />
 
           {/* For Unknown URLs */}
           <Route

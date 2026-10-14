@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {createShipment, deleteShipment, getShipments,} from "../api/shipments";
+import {
+  createShipment,
+  deleteShipment,
+  getShipments,
+  registerTracking,
+  advanceMockTracking,
+} from "../api/shipments";
 
 function Shipments() {
   const [shipments, setShipments] = useState([]);
@@ -99,6 +105,35 @@ function Shipments() {
       setError(err.message || "Unable to delete shipment.");
     }
   };
+
+  const handleRegisterTracking = async (shipment) => {
+    setError("");
+    setSuccess("");
+
+    try {
+      const result = await registerTracking(shipment.id);
+
+      setSuccess(result.message);
+      await loadShipments();
+    } catch (err) {
+      setError(err.message || "Unable to register tracking.");
+    }
+  };
+
+  
+const handleMockAdvance = async (shipment) => {
+  setError("");
+  setSuccess("");
+
+  try {
+    const result = await advanceMockTracking(shipment.id);
+
+    setSuccess(result.message);
+    await loadShipments();
+  } catch (err) {
+    setError(err.message || "Unable to simulate tracking.");
+  }
+};
 
   return (
     <main className="shipments-page">
@@ -276,6 +311,7 @@ function Shipments() {
                   : "Not available"}
               </p>
 
+              
               <div className="shipment-actions">
                 <Link
                   to={`/shipments/${shipment.id}`}
@@ -283,6 +319,24 @@ function Shipments() {
                 >
                   View Details
                 </Link>
+
+                {shipment.tracking_number && (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => handleRegisterTracking(shipment)}
+                  >
+                    Register with 17TRACK
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => handleMockAdvance(shipment)}
+                >
+                  Simulate Next Tracking Status
+                </button>
 
                 <button
                   type="button"
@@ -292,6 +346,7 @@ function Shipments() {
                   Delete
                 </button>
               </div>
+
             </article>
           ))
         )}

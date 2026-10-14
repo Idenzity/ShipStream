@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const express = require("express");
@@ -530,6 +529,203 @@ app.delete("/api/shipments/:id", requireAuth, async (req, res) => {
   }
 });
 
+app.post(
+  "/api/shipments/:id/register-tracking",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const trackingToken = process.env.TRACK17_API_TOKEN;
+
+      if (!trackingToken) {
+        return res.status(500).json({
+          message: "17TRACK is not configured on the server.",
+        });
+      }
+
+      // Retrieve only a shipment owned by this user.
+      const { data: shipment, error: shipmentError } =
+        await supabase
+          .from("shipments")
+          .select("*")
+          .eq("id", req.params.id)
+          .eq("user_id", req.auth.sub)
+          .maybeSingle();
+
+      if (shipmentError) throw shipmentError;
+
+      if (!shipment) {
+        return res.status(404).json({
+          message: "Shipment not found.",
+        });
+      }
+
+      if (!shipment.tracking_number) {
+        return res.status(400).json({
+          message: "This shipment has no tracking number.",
+        });
+      }
+
+      // Register with 17TRACK. Leave carrier detection automatic.
+      const apiResponse = await fetch(
+        "https://api.17track.net/track/v2.4/register",
+        {
+          method: "POST",
+          headers: {
+            "17token": trackingToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify([
+            {
+              number: shipment.tracking_number,
+            },
+          ]),
+        }
+      );
+
+      const result = await apiResponse.json();
+
+      
+if (!apiResponse.ok || result.code !== 0) {
+  console.error("17TRACK HTTP status:", apiResponse.status);
+  console.error(
+    "17TRACK response:",
+    JSON.stringify(result, null, 2)
+  );
+
+  return res.status(502).json({
+    message: "17TRACK registration failed. Check backend logs.",
+  });
+}
+
+
+      const accepted = result.data?.accepted || [];
+      const rejected = result.data?.rejected || [];
+
+      const registered = accepted.some(
+        (item) => item.number === shipment.tracking_number
+      );
+
+      if (!registered) {
+        const rejection = rejected.find(
+          (item) => item.number === shipment.tracking_number
+        );
+
+        return res.status(422).json({
+          message:
+            rejection?.error?.message ||
+            "17TRACK did not accept this tracking number.",
+        });
+      }
+
+      // Save the tracking provider. The shipment status will be
+      // updated later when we process actual tracking updates.
+      const { error: updateError } = await supabase
+        .from("shipments")
+        .update({
+          carrier: "17TRACK",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", shipment.id)
+        .eq("user_id", req.auth.sub);
+
+      if (updateError) throw updateError;
+
+      return res.json({
+        message: "Tracking number registered with 17TRACK.",
+        trackingNumber: shipment.tracking_number,
+      });
+    } catch (error) {
+      console.error("17TRACK registration error:", error.message);
+
+      return res.status(500).json({
+        message: "Unable to register tracking number.",
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/shipments/:id/mock-advance",
+  requireAuth,
+  async (req, res) => {
+    try {
+      // Mock tracking is for local development only.
+      if (
+        process.env.NODE_ENV === "production" ||
+        process.env.MOCK_TRACKING_ENABLED !== "true"
+      ) {
+        return res.status(403).json({
+          message: "Mock tracking is disabled."
+        });
+      }
+
+      const { data: shipment, error } = await supabase
+        .from("shipments")
+        .select("*")
+        .eq("id", req.params.id)
+        .eq("user_id", req.auth.sub)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!shipment) {
+        return res.status(404).json({
+          message: "Shipment not found."
+        });
+      }
+
+      const statuses = [
+        "Pending",
+        "Processing",
+        "In Transit",
+        "Out for Delivery",
+        "Delivered"
+      ];
+
+      const currentIndex = statuses.indexOf(shipment.status);
+
+      if (currentIndex === -1) {
+        return res.status(400).json({
+          message: "This shipment status cannot be simulated."
+        });
+      }
+
+      if (currentIndex === statuses.length - 1) {
+        return res.json({
+          message: "This shipment is already delivered.",
+          shipment
+        });
+      }
+
+      const nextStatus = statuses[currentIndex + 1];
+
+      const { data: updatedShipment, error: updateError } =
+        await supabase
+          .from("shipments")
+          .update({
+            status: nextStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", shipment.id)
+          .eq("user_id", req.auth.sub)
+          .select()
+          .single();
+
+      if (updateError) throw updateError;
+
+      return res.json({
+        message: `Mock tracking updated to ${nextStatus}.`,
+        shipment: updatedShipment
+      });
+    } catch (error) {
+      console.error("Mock tracking error:", error.message);
+
+      return res.status(500).json({
+        message: "Unable to update mock tracking."
+      });
+    }
+  }
+);
 
 // Handle invalid API routes.
 app.use("/api", (req, res) => {
