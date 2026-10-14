@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Shipments from "./pages/Shipments";
 import ShipmentDetails from "./pages/ShipmentDetails";
 import Plans from "./pages/Plans";
+import Billing from "./pages/Billing";
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
             />
           </Route>
           <Route path="/plans" element={<Plans />} />
+          <Route path="/billing" element={<Billing />} />
 
           {/* For Unknown URLs */}
           <Route
