@@ -1,23 +1,113 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+const API_URL = "http://localhost:5000";
 
 function Billing() {
   const navigate = useNavigate();
 
-  // Temporary display values.
-  // We will replace these with Supabase data later.
-  const subscription = {
-    plan: "Free",
-    status: "Active",
-    startedAt: null,
-    endsAt: null,
-  };
+  const [subscription, setSubscription] = useState(null);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const payments = [];
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBillingData() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const [subscriptionResponse, paymentsResponse] =
+          await Promise.all([
+            fetch(`${API_URL}/api/billing/subscription`, {
+              credentials: "include",
+            }),
+            fetch(`${API_URL}/api/billing/payments`, {
+              credentials: "include",
+            }),
+          ]);
+
+        const subscriptionData = await subscriptionResponse.json();
+        const paymentsData = await paymentsResponse.json();
+
+        if (
+          !subscriptionResponse.ok ||
+          !paymentsResponse.ok
+        ) {
+          throw new Error(
+            subscriptionData.message ||
+              paymentsData.message ||
+              "Unable to load billing information."
+          );
+        }
+
+        if (!cancelled) {
+          setSubscription(subscriptionData.subscription);
+          setPayments(paymentsData.payments || []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err.message || "Unable to load billing information."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadBillingData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const formatDate = (date) => {
     if (!date) return "Not applicable";
+
     return new Date(date).toLocaleDateString();
   };
+
+  const formatPlan = (plan) => {
+    if (!plan) return "Free";
+    return plan.charAt(0).toUpperCase() + plan.slice(1);
+  };
+
+  const formatStatus = (status) => {
+    if (!status) return "Unknown";
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  if (loading) {
+    return (
+      <main className="billing-page">
+        <p>Loading your billing information...</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="billing-page">
+        <h1>Billing & Subscription</h1>
+        <p role="alert">{error}</p>
+        <button
+          type="button"
+          className="billing-back-button"
+          onClick={() => navigate("/dashboard")}
+        >
+          Back to Dashboard
+        </button>
+      </main>
+    );
+  }
+
+  const plan = formatPlan(subscription?.plan);
 
   return (
     <main className="billing-page">
@@ -33,29 +123,29 @@ function Billing() {
         <div className="billing-card-heading">
           <div>
             <p className="billing-label">CURRENT PLAN</p>
-            <h2>{subscription.plan}</h2>
+            <h2>{plan}</h2>
           </div>
 
           <span className="billing-status">
-            {subscription.status}
+            {formatStatus(subscription?.status)}
           </span>
         </div>
 
         <p className="billing-description">
-          {subscription.plan === "Free"
-            ? "You are using the free ShipStream plan."
-            : "Your ShipStream Business subscription."}
+          {subscription?.plan === "business"
+            ? "Your ShipStream Business subscription."
+            : "You are using the free ShipStream plan."}
         </p>
 
         <div className="billing-details">
           <div>
             <span>Start date</span>
-            <strong>{formatDate(subscription.startedAt)}</strong>
+            <strong>{formatDate(subscription?.started_at)}</strong>
           </div>
 
           <div>
             <span>Expiration date</span>
-            <strong>{formatDate(subscription.endsAt)}</strong>
+            <strong>{formatDate(subscription?.ends_at)}</strong>
           </div>
         </div>
 
@@ -64,9 +154,9 @@ function Billing() {
           className="billing-primary-button"
           onClick={() => navigate("/plans")}
         >
-          {subscription.plan === "Free"
-            ? "Upgrade Plan"
-            : "View Plans"}
+          {subscription?.plan === "business"
+            ? "View Plans"
+            : "Upgrade Plan"}
         </button>
       </section>
 
@@ -93,14 +183,16 @@ function Billing() {
                   <th>Status</th>
                 </tr>
               </thead>
+
               <tbody>
                 {payments.map((payment) => (
                   <tr key={payment.id}>
                     <td>{formatDate(payment.created_at)}</td>
                     <td>
-                      ₱{(payment.amount / 100).toFixed(2)}
+                      {payment.currency === "PHP" ? "₱" : ""}
+                      {(payment.amount / 100).toFixed(2)}
                     </td>
-                    <td>{payment.status}</td>
+                    <td>{formatStatus(payment.status)}</td>
                   </tr>
                 ))}
               </tbody>

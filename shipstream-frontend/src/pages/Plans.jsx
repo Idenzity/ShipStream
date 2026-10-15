@@ -31,17 +31,55 @@ const plans = [
 function Plans() {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState("");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  
+const handleChoosePlan = async (plan) => {
+  if (plan.id === "free") {
+    setSelectedPlan("Your Free plan is available.");
+    return;
+  }
 
-  const handleChoosePlan = (plan) => {
-    if (plan.id === "free") {
-      setSelectedPlan("Your Free plan is available.");
-      return;
+  try {
+    setCheckoutLoading(true);
+    setCheckoutError("");
+
+    const response = await fetch(
+      "http://localhost:5000/api/billing/checkout",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          plan: plan.id,
+        }),
+      }
+    );
+
+  const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Unable to start checkout."
+      );
     }
 
-    navigate("/billing", {
-      state: { selectedPlan: plan.id },
-    });
-  };
+    if (!data.checkoutUrl) {
+      throw new Error("PayMongo did not return a checkout URL.");
+    }
+
+    // Redirect to PayMongo's hosted checkout page.
+    window.location.href = data.checkoutUrl;
+  } catch (error) {
+    setCheckoutError(
+      error.message || "Unable to start checkout."
+    );
+    setCheckoutLoading(false);
+  }
+};
+
 
   return (
     <main className="plans-page">
@@ -87,16 +125,15 @@ function Plans() {
 
             <button
               type="button"
-              className={
-                plan.id === "business"
-                  ? "plan-button primary-plan-button"
-                  : "plan-button"
-              }
+              className="plan-button primary-plan-button"
               onClick={() => handleChoosePlan(plan)}
+              disabled={checkoutLoading}
             >
-              {plan.id === "business"
-                ? "Upgrade to Business"
-                : "Use Free Plan"}
+              {checkoutLoading && plan.id === "business"
+                ? "Connecting to PayMongo..."
+                : plan.id === "free"
+                  ? "Choose Free"
+                  : "Upgrade to Business"}
             </button>
           </article>
         ))}
@@ -105,6 +142,12 @@ function Plans() {
       {selectedPlan && (
         <p className="plans-message" role="status">
           {selectedPlan}
+        </p>
+      )}
+
+      {checkoutError && (
+        <p className="plans-message" role="alert">
+          {checkoutError}
         </p>
       )}
 
