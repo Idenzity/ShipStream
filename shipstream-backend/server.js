@@ -101,6 +101,25 @@ function requireAuth(req, res, next) {
   }
 }
 
+function map17TrackStatus(status) {
+  if (typeof status !== "string") return null;
+
+  const normalized = status.trim().toLowerCase();
+
+  const statusMap = {
+    pending: "Pending",
+    inforeceived: "Processing",
+    intransit: "In Transit",
+    outfordelivery: "Out for Delivery",
+    delivered: "Delivered",
+    deliveryfailure: "Delayed",
+    exception: "Delayed",
+    expired: "Delayed",
+  };
+
+  return statusMap[normalized] || null;
+}
+
 // Check whether the backend is running.
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", app: "ShipStream API" });
@@ -610,7 +629,6 @@ if (!apiResponse.ok || result.code !== 0) {
   });
 }
 
-
       const accepted = result.data?.accepted || [];
       const rejected = result.data?.rejected || [];
 
@@ -656,6 +674,150 @@ if (!apiResponse.ok || result.code !== 0) {
     }
   }
 );
+
+app.get(
+  "/api/shipments/:id/tracking",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const trackingToken = process.env.TRACK17_API_TOKEN;
+
+      if (!trackingToken) {
+        return res.status(500).json({
+          message: "17TRACK is not configured on the server.",
+        });
+      }
+
+      const { data: shipment, error: shipmentError } =
+        await supabase
+          .from("shipments")
+          .select("*")
+          .eq("id", req.params.id)
+          .eq("user_id", req.auth.sub)
+          .maybeSingle();
+
+      if (shipmentError) throw shipmentError;
+
+      if (!shipment) {
+        return res.status(404).json({
+          message: "Shipment not found.",
+        });
+      }
+
+      if (!shipment.tracking_number) {
+        return res.status(400).json({
+          message: "This shipment has no tracking number.",
+        });
+      }
+
+      const apiResponse = await fetch(
+        "https://api.17track.net/track/v2.4/gettrackinfo",
+        {
+          method: "POST",
+          headers: {
+            "17token": trackingToken,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify([
+            {
+              number: shipment.tracking_number,
+              carrier: 100264,
+            },
+          ]),
+        }
+      );
+
+      const result = await apiResponse.json();
+
+      if (!apiResponse.ok || result.code !== 0) {
+        console.error("17TRACK lookup failed:", result);
+
+        return res.status(502).json({
+          message: "Unable to retrieve tracking details from 17TRACK.",
+        });
+      }
+
+      const accepted = result.data?.accepted || [];
+      const rejected = result.data?.rejected || [];
+
+      const tracking = accepted.find(
+        (item) => item.number === shipment.tracking_number
+      );
+
+      if (!tracking) {
+        const rejection = rejected.find(
+          (item) => item.number === shipment.tracking_number
+        );
+
+        return res.status(422).json({
+          message:
+            rejection?.error?.message ||
+            "17TRACK has not returned tracking information yet.",
+        });
+      }
+
+      const info = tracking.track_info || {};
+      const latestEvent = info.latest_event || null;
+      const providerStatus = info.latest_status?.status;
+      const mappedStatus = map17TrackStatus(providerStatus);
+
+      // Synchronize recognized statuses with Supabase.
+      if (mappedStatus) {
+        const terminalStatuses = ["Delivered", "Cancelled"];
+        const currentStatus = shipment.status;
+
+        if (
+          !terminalStatuses.includes(currentStatus) &&
+          currentStatus !== mappedStatus
+        ) {
+          const { error: updateError } = await supabase
+            .from("shipments")
+            .update({
+              status: mappedStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", shipment.id)
+            .eq("user_id", req.auth.sub);
+
+          if (updateError) {
+            console.error("Status sync failed:", updateError.message);
+          } else {
+            shipment.status = mappedStatus;
+          }
+        }
+      }
+
+      const estimatedDelivery =
+        info.time_metrics?.estimated_delivery_date || null;
+
+      return res.json({
+        trackingNumber: shipment.tracking_number,
+        carrier: tracking.carrier ?? null,
+        status: providerStatus || "Unknown",
+        subStatus: info.latest_status?.sub_status ?? null,
+        latestEvent: latestEvent
+          ? {
+              description:
+                latestEvent.description_translation?.description ||
+                latestEvent.description ||
+                "No description available",
+              time: latestEvent.time_iso || null,
+              location: latestEvent.location || null,
+            }
+          : null,
+        estimatedDelivery,
+        shipmentStatus: shipment.status,
+      });
+    } catch (error) {
+      console.error("Tracking lookup error:", error.message);
+
+      return res.status(500).json({
+        message: "Unable to retrieve tracking details.",
+      });
+    }
+  }
+);
+
 
 app.get(
   "/api/shipments/:id/tracking",
