@@ -1,13 +1,18 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Home() {
-  return (  
+  const { user, isLoading } = useAuth();
+
+  // Wait until the login status has been checked.
+  if (isLoading) {
+    return <div className="home"></div>;
+  }
+
+  return (
     <div className="home">
-
       <main className="hero">
-
         <div className="hero-content">
-
           <p className="eyebrow">
             FURNITURE DELIVERY TRACKING
           </p>
@@ -23,32 +28,22 @@ function Home() {
           </p>
 
           <div className="hero-buttons">
-
-            <Link
-              to="/login"
-              className="primary-button"
-            >
-              Track a Delivery
-            </Link>
-
-            <Link
-              to="/register"
-              className="secondary-button"
-            >
-              Create Account
-            </Link>
-
+            {user ? (
+              <Link to="/shipments" className="primary-button">
+                Track a Delivery
+              </Link>
+            ) : (
+              <Link to="/register" className="secondary-button">
+                Create Account
+              </Link>
+            )}
           </div>
-
         </div>
-
       </main>
 
       <section className="features">
-
         <div className="feature">
           <h3>Real-Time Tracking</h3>
-
           <p>
             Keep track of your furniture delivery
             and its current shipping status.
@@ -57,7 +52,6 @@ function Home() {
 
         <div className="feature">
           <h3>Delivery Updates</h3>
-
           <p>
             View important updates throughout
             the delivery process.
@@ -66,15 +60,12 @@ function Home() {
 
         <div className="feature">
           <h3>Easy Management</h3>
-
           <p>
             Manage your deliveries from one
             simple dashboard.
           </p>
         </div>
-
       </section>
-
     </div>
   );
 }

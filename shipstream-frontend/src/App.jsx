@@ -13,6 +13,7 @@ import Shipments from "./pages/Shipments";
 import ShipmentDetails from "./pages/ShipmentDetails";
 import Plans from "./pages/Plans";
 import Billing from "./pages/Billing";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -30,13 +31,11 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/shipments" element={<Shipments />} />
-            <Route
-              path="/shipments/:id"
-              element={<ShipmentDetails />}
-            />
+            <Route path="/shipments/:id" element={<ShipmentDetails />}/>
+            <Route path="/plans" element={<Plans />} />
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
-          <Route path="/plans" element={<Plans />} />
-          <Route path="/billing" element={<Billing />} />
 
           {/* For Unknown URLs */}
           <Route

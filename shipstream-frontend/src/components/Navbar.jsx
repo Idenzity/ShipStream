@@ -29,9 +29,9 @@ function Navbar() {
             <Link to="/dashboard">Dashboard</Link>
             <Link to="/shipments">Track Deliveries</Link>
 
-            <span className="nav-user">
+            <Link to="/profile" className="nav-user">
               {user.fullName}
-            </span>
+            </Link>
 
             <button
               type="button"

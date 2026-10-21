@@ -1508,3 +1508,134 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Clickable account name in the navbar */
+.nav-user {
+  display: inline-block;
+  text-decoration: none;
+  padding: 9px 12px;
+  border-radius: 8px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-user:hover {
+  color: #4f46e5;
+  background: #eef2ff;
+}
+
+/* Profile page */
+.profile-page {
+  width: min(850px, 92%);
+  margin: 48px auto;
+}
+
+.profile-header {
+  margin-bottom: 28px;
+}
+
+.profile-header .eyebrow {
+  margin-bottom: 12px;
+}
+
+.profile-header h1 {
+  font-size: 38px;
+  margin-bottom: 12px;
+}
+
+.profile-header > p:last-child {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.profile-card {
+  padding: 32px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.profile-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 18px;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.profile-card > h2 {
+  font-size: 24px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+
+.profile-description {
+  color: #64748b;
+  margin-bottom: 28px;
+}
+
+.profile-info {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.profile-info-item span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.profile-info-item strong {
+  color: #172033;
+  overflow-wrap: anywhere;
+}
+
+.profile-plan {
+  color: #4f46e5 !important;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.profile-actions a {
+  text-decoration: none;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .profile-page {
+    margin: 30px auto;
+  }
+
+  .profile-header h1 {
+    font-size: 32px;
+  }
+
+  .profile-card {
+    padding: 22px;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+  }
+}
