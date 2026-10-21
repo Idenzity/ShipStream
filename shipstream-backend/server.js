@@ -123,7 +123,10 @@ function map17TrackStatus(status) {
 
 // Check whether the backend is running.
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", app: "ShipStream API" });
+  res.status(200).json({
+    status: "ok",
+    message: "ShipStream API is running",
+  });
 });
 
 // Register a new user.
