@@ -33,8 +33,13 @@ function Plans() {
   const [selectedPlan, setSelectedPlan] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
+  const [subscription, setSubscription] = useState(null);
   
-const handleChoosePlan = async (plan) => {
+  const isActiveBusiness =
+  subscription?.plan?.toLowerCase() === "business" &&
+  subscription?.status?.toLowerCase() === "active";
+
+  const handleChoosePlan = async (plan) => {
   if (plan.id === "free") {
     setSelectedPlan("Your Free plan is available.");
     return;
@@ -100,10 +105,6 @@ const handleChoosePlan = async (plan) => {
             }`}
             key={plan.id}
           >
-            {plan.id === "business" && (
-              <span className="plan-badge">BUSINESS PLAN</span>
-            )}
-
             <h2>{plan.name}</h2>
 
             <div className="plan-price">
@@ -123,18 +124,26 @@ const handleChoosePlan = async (plan) => {
               ))}
             </ul>
 
-            <button
-              type="button"
-              className="plan-button primary-plan-button"
-              onClick={() => handleChoosePlan(plan)}
-              disabled={checkoutLoading}
-            >
-              {checkoutLoading && plan.id === "business"
-                ? "Connecting to PayMongo..."
-                : plan.id === "free"
-                  ? "Choose Free"
-                  : "Upgrade to Business"}
-            </button>
+            {!isActiveBusiness && (
+              <button
+                type="button"
+                className="plan-button primary-plan-button"
+                onClick={() => {
+                  if (plan.id === "free") {
+                    navigate("/");
+                  } else {
+                    handleChoosePlan(plan);
+                  }
+                }}
+                disabled={checkoutLoading}
+              >
+                {checkoutLoading && plan.id === "business"
+                  ? "Connecting to PayMongo..."
+                  : plan.id === "free"
+                    ? "Choose Free"
+                    : "Upgrade to Business"}
+              </button>
+            )}
           </article>
         ))}
       </section>
@@ -151,13 +160,6 @@ const handleChoosePlan = async (plan) => {
         </p>
       )}
 
-      <button
-        type="button"
-        className="plans-back-button"
-        onClick={() => navigate("/dashboard")}
-      >
-        Back to Dashboard
-      </button>
     </main>
   );
 }

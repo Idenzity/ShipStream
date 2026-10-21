@@ -74,6 +74,11 @@ function Profile() {
           </div>
 
           <div className="profile-info-item">
+            <span>Phone Number</span>
+            <strong>{user?.phone || "Not provided"}</strong>
+          </div>
+
+          <div className="profile-info-item">
             <span>Current Plan</span>
             {loading ? (
               <strong>Loading...</strong>
@@ -98,7 +103,7 @@ function Profile() {
 
         <div className="profile-actions">
           <Link to="/billing" className="primary-button">
-            View Billings
+            View Subscriptions
           </Link>
 
         </div>

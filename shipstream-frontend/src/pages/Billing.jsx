@@ -109,6 +109,10 @@ function Billing() {
 
   const plan = formatPlan(subscription?.plan);
 
+  const isActiveBusiness =
+  subscription?.plan?.toLowerCase() === "business" &&
+  subscription?.status?.toLowerCase() === "active";
+
   return (
     <main className="billing-page">
       <header className="billing-header">
@@ -149,15 +153,15 @@ function Billing() {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="billing-primary-button"
-          onClick={() => navigate("/plans")}
-        >
-          {subscription?.plan === "business"
-            ? "View Plans"
-            : "Upgrade Plan"}
-        </button>
+        {!isActiveBusiness && (
+          <button
+            type="button"
+            className="billing-primary-button"
+            onClick={() => navigate("/plans")}
+          >
+            Upgrade Plan
+          </button>
+        )}
       </section>
 
       <section className="billing-card payment-history">

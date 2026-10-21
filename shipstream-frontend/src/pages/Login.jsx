@@ -82,7 +82,7 @@ const handleSubmit = async (event) => {
       );
     }
 
-    navigate("/dashboard");
+    navigate("/plans");
     
   } catch (error) {
     setServerError(

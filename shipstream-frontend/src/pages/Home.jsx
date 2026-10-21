@@ -24,7 +24,7 @@ function Home() {
 
           <p className="description">
             ShipStream helps you track your furniture
-            deliveries from pickup to your doorstep.
+            deliveries from pickup to doorstep.
           </p>
 
           <div className="hero-buttons">
