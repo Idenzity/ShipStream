@@ -567,6 +567,26 @@ app.post(
       console.log("REGISTER TRACKING ROUTE REACHED");
       const trackingToken = process.env.TRACK17_API_TOKEN;
 
+      const { data: subscription, error: subscriptionError } =
+        await supabase
+          .from("subscriptions")
+          .select("plan, status")
+          .eq("user_id", req.auth.sub)
+          .maybeSingle();
+
+      if (subscriptionError) {
+        throw subscriptionError;
+      }
+
+      if (
+        subscription?.plan?.toLowerCase() !== "business" ||
+        subscription?.status?.toLowerCase() !== "active"
+      ) {
+        return res.status(403).json({
+          message:
+            "Registering with 17TRACK requires an active Business plan.",
+        });
+      }
       if (!trackingToken) {
         return res.status(500).json({
           message: "17TRACK is not configured on the server.",

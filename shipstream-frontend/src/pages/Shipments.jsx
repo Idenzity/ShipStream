@@ -10,6 +10,13 @@ import {
 
 function Shipments() {
   const [shipments, setShipments] = useState([]);
+
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+  const isBusiness =
+    subscription?.plan?.toLowerCase() === "business" &&
+    subscription?.status?.toLowerCase() === "active";
+    
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -43,6 +50,39 @@ function Shipments() {
   useEffect(() => {
     loadShipments();
   }, [loadShipments]);
+
+  useEffect(() => {
+    const loadSubscription = async () => {
+      try {
+        const API_URL =
+          import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+        const response = await fetch(
+          `${API_URL}/api/billing/subscription`,
+          {
+            credentials: "include",
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Unable to load subscription."
+          );
+        }
+
+        setSubscription(data.subscription);
+      } catch (err) {
+        console.error("Subscription loading error:", err);
+        setSubscription(null);
+      } finally {
+        setSubscriptionLoading(false);
+      }
+    };
+
+    loadSubscription();
+  }, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -320,11 +360,12 @@ const handleMockAdvance = async (shipment) => {
                   View Details
                 </Link>
 
-                {shipment.tracking_number && (
+                {isBusiness && shipment.tracking_number && (
                   <button
                     type="button"
                     className="secondary-button"
                     onClick={() => handleRegisterTracking(shipment)}
+                    disabled={subscriptionLoading}
                   >
                     Register with 17TRACK
                   </button>
