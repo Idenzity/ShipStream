@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -7,6 +7,7 @@ const API_URL =
 
 function Billing() {
 const navigate = useNavigate();
+const location = useLocation();
 
 const [subscription, setSubscription] = useState(null);
 const [payments, setPayments] = useState([]);
@@ -16,127 +17,134 @@ const [checkoutMessage, setCheckoutMessage] = useState("");
 const [checkoutResult, setCheckoutResult] = useState("");
 
 useEffect(() => {
-let cancelled = false;
+  let cancelled = false;
 
-async function loadBillingData() {
-  try {
-    setLoading(true);
-    setError("");
-
-    const [subscriptionResponse, paymentsResponse] =
-      await Promise.all([
-        fetch(`${API_URL}/api/billing/subscription`, {
-          credentials: "include",
-        }),
-        fetch(`${API_URL}/api/billing/payments`, {
-          credentials: "include",
-        }),
-      ]);
-
-    const subscriptionData = await subscriptionResponse.json();
-    const paymentsData = await paymentsResponse.json();
-
-    if (!subscriptionResponse.ok || !paymentsResponse.ok) {
-      throw new Error(
-        subscriptionData.message ||
-          paymentsData.message ||
-          "Unable to load billing information."
-      );
-    }
-
-    if (!cancelled) {
-      setSubscription(subscriptionData.subscription);
-      setPayments(paymentsData.payments || []);
-    }
-  } catch (err) {
-    if (!cancelled) {
-      setError(
-        err.message || "Unable to load billing information."
-      );
-    }
-  } finally {
-    if (!cancelled) {
-      setLoading(false);
-    }
-  }
-}
-
-async function handleCheckoutReturn() {
-  const params = new URLSearchParams(window.location.search);
-  const checkout = params.get("checkout");
-  const paymentId = params.get("payment_id");
-
-  if (checkout === "success") {
-    setCheckoutResult("success");
-    setCheckoutMessage(
-      "Payment submitted. Your payment status will update after PayMongo confirms it."
-    );
-  }
-
-  if (checkout === "failed") {
-    setCheckoutResult("failed");
-
-    if (!paymentId) {
-      setCheckoutMessage(
-        "Checkout was not completed. Check your payment history or try again."
-      );
-      return;
-    }
-
+  async function loadBillingData() {
     try {
-      const response = await fetch(
-        `${API_URL}/api/billing/fail-checkout`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ paymentId }),
-        }
-      );
+      setLoading(true);
+      setError("");
 
-      const data = await response.json();
+      const [subscriptionResponse, paymentsResponse] =
+        await Promise.all([
+          fetch(`${API_URL}/api/billing/subscription`, {
+            credentials: "include",
+          }),
+          fetch(`${API_URL}/api/billing/payments`, {
+            credentials: "include",
+          }),
+        ]);
 
-      if (!response.ok) {
+      const subscriptionData = await subscriptionResponse.json();
+      const paymentsData = await paymentsResponse.json();
+
+      if (!subscriptionResponse.ok || !paymentsResponse.ok) {
         throw new Error(
-          data.message || "Unable to verify the checkout status."
+          subscriptionData.message ||
+            paymentsData.message ||
+            "Unable to load billing information."
         );
       }
 
       if (!cancelled) {
-        setCheckoutMessage(
-          data.status === "failed"
-            ? "Payment failed or checkout expired. You can try again."
-            : data.status === "paid"
-            ? "This payment was successful. Your payment history will reflect its confirmed status."
-            : "Checkout has not been confirmed as failed. Check your payment history before trying again."
-        );
+        setSubscription(subscriptionData.subscription);
+        setPayments(paymentsData.payments || []);
       }
     } catch (err) {
       if (!cancelled) {
-        setCheckoutMessage(
-          err.message || "Unable to verify the checkout status."
+        setError(
+          err.message || "Unable to load billing information."
         );
+      }
+    } finally {
+      if (!cancelled) {
+        setLoading(false);
       }
     }
   }
 
-  await loadBillingData();
+  async function handleCheckoutReturn() {
+    const params = new URLSearchParams(location.search);
+    const checkout = params.get("checkout");
+    const paymentId = params.get("payment_id");
 
-  // Remove the checkout query parameters after processing the return.
-  if (!cancelled && (checkout === "success" || checkout === "failed")) {
-    window.history.replaceState({}, "", "/billing");
+    if (checkout === "success") {
+      setCheckoutResult("success");
+      setCheckoutMessage(
+        "Payment submitted. Your payment status will update after PayMongo confirms it."
+      );
+    } else if (checkout === "failed") {
+      setCheckoutResult("failed");
+
+      if (!paymentId) {
+        setCheckoutMessage(
+          "Checkout was not completed. Check your payment history or try again."
+        );
+      } else {
+        try {
+          const response = await fetch(
+            `${API_URL}/api/billing/fail-checkout`,
+            {
+              method: "POST",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ paymentId }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.message || "Unable to verify the checkout status."
+            );
+          }
+
+          if (!cancelled) {
+            setCheckoutMessage(
+              data.status === "failed"
+                ? "Payment failed or checkout expired. You can try again."
+                : data.status === "paid"
+                ? "This payment was successful. Your payment history will reflect its confirmed status."
+                : "Checkout has not been confirmed as failed. Check your payment history before trying again."
+            );
+
+            if (data.status === "paid") {
+              setCheckoutResult("success");
+            }
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setCheckoutMessage(
+              err.message || "Unable to verify the checkout status."
+            );
+          }
+        }
+      }
+    } else {
+      // No checkout result in the URL: clear any old message.
+      setCheckoutMessage("");
+      setCheckoutResult("");
+    }
+
+    await loadBillingData();
+
+    // Remove checkout parameters after processing the result.
+    if (
+      !cancelled &&
+      (checkout === "success" || checkout === "failed")
+    ) {
+      navigate("/billing", { replace: true });
+    }
   }
-}
 
-handleCheckoutReturn();
+  handleCheckoutReturn();
 
-return () => {
-  cancelled = true;
-};
-
-}, []);
+  return () => {
+    cancelled = true;
+  };
+}, [location.search, navigate]);
 
 const formatDate = (date) => {
 if (!date) return "Not applicable";
