@@ -695,10 +695,7 @@ if (!apiResponse.ok || result.code !== 0) {
   }
 );
 
-app.get(
-  "/api/shipments/:id/tracking",
-  requireAuth,
-  async (req, res) => {
+app.get("/api/shipments/:id/tracking", requireAuth, async (req, res) => {
     try {
       const trackingToken = process.env.TRACK17_API_TOKEN;
 
@@ -839,10 +836,7 @@ app.get(
 );
 
 
-app.get(
-  "/api/shipments/:id/tracking",
-  requireAuth,
-  async (req, res) => {
+app.get("/api/shipments/:id/tracking", requireAuth, async (req, res) => {
     try {
       const trackingToken = process.env.TRACK17_API_TOKEN;
 
@@ -954,10 +948,7 @@ app.get(
   }
 );
 
-app.post(
-  "/api/shipments/:id/mock-advance",
-  requireAuth,
-  async (req, res) => {
+app.post("/api/shipments/:id/mock-advance", requireAuth, async (req, res) => {
     try {
       // Mock tracking is for local development only.
       if (
@@ -1037,9 +1028,7 @@ app.post(
   }
 );
 
-/* =========================
-   BILLING API
-========================= */
+// BILLING API //
 
 // Get the user's subscription.
 // If the user does not have one yet, create a Free subscription.
@@ -1130,10 +1119,7 @@ app.get("/api/billing/plans", (req, res) => {
   });
 });
 
-
-/* =========================
-   PAYMONGO CHECKOUT
-========================= */
+// PAYMONGO CHECKOUT //
 
 app.post("/api/billing/checkout", requireAuth, async (req, res) => {
   const userId = req.auth.sub;
@@ -1148,10 +1134,8 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
   let paymentId;
 
   try {
-    // The price is set by the backend, not by the frontend.
-    const amount = 29900; // ₱299.00 in centavos
+    const amount = 29900;
 
-    // Create a pending payment record first.
     const { data: payment, error: insertError } = await supabase
       .from("payments")
       .insert({
@@ -1168,7 +1152,6 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
 
     paymentId = payment.id;
 
-    // Create the hosted checkout session.
     const paymongoResponse = await fetch(
       "https://api.paymongo.com/v2/checkout_sessions",
       {
@@ -1191,11 +1174,13 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
                   description: "30-day ShipStream Business plan",
                 },
               ],
-                payment_method_types: ["card", "gcash", "qrph"],
-                success_url: `${process.env.FRONTEND_URL}/billing?checkout=success`,
-                cancel_url: `${process.env.FRONTEND_URL}/billing?checkout=cancelled`,
-                reference_number: paymentId,
-                metadata: {
+              payment_method_types: ["card", "gcash", "qrph"],
+              success_url:
+                `${process.env.FRONTEND_URL}/billing?checkout=success`,
+              cancel_url:
+                `${process.env.FRONTEND_URL}/billing?checkout=failed&payment_id=${encodeURIComponent(paymentId)}`,
+              reference_number: paymentId,
+              metadata: {
                 user_id: userId,
                 payment_id: paymentId,
                 plan: "business",
@@ -1209,10 +1194,7 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
     const result = await paymongoResponse.json();
 
     if (!paymongoResponse.ok) {
-      console.error(
-        "PayMongo checkout error:",
-        JSON.stringify(result.errors || result)
-      );
+      console.error("PayMongo checkout error:", result);
 
       await supabase
         .from("payments")
@@ -1221,11 +1203,11 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
           updated_at: new Date().toISOString(),
         })
         .eq("id", paymentId)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("status", "pending");
 
       return res.status(502).json({
-        message:
-          "PayMongo could not create the checkout session. Check your backend logs.",
+        message: "PayMongo could not create the checkout session.",
       });
     }
 
@@ -1236,7 +1218,6 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
       throw new Error("PayMongo returned an incomplete checkout session.");
     }
 
-    // Link the local payment record to the PayMongo session.
     const { error: updateError } = await supabase
       .from("payments")
       .update({
@@ -1256,25 +1237,171 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
     console.error("Create checkout error:", error.message);
 
     if (paymentId) {
-      const { error: updateError } = await supabase
+      await supabase
         .from("payments")
         .update({
           status: "failed",
           updated_at: new Date().toISOString(),
         })
         .eq("id", paymentId)
-        .eq("user_id", userId);
-
-      if (updateError) {
-        console.error(
-          "Payment cleanup error:",
-          updateError.message
-        );
-      }
+        .eq("user_id", userId)
+        .eq("status", "pending");
     }
 
     return res.status(500).json({
       message: "Unable to start checkout right now.",
+    });
+  }
+});
+
+// Handle a user returning to ShipStream from the checkout cancel URL.
+// Expire the PayMongo session before marking the payment as failed.
+app.post("/api/billing/fail-checkout", requireAuth, async (req, res) => {
+  const userId = req.auth.sub;
+  const { paymentId } = req.body || {};
+  const secretKey = process.env.PAYMONGO_SECRET_KEY;
+
+  if (
+    typeof paymentId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(paymentId)
+  ) {
+    return res.status(400).json({
+      message: "A valid payment ID is required.",
+    });
+  }
+
+  if (!secretKey || !secretKey.startsWith("sk_test_")) {
+    return res.status(500).json({
+      message: "PayMongo test credentials are not configured.",
+    });
+  }
+
+  try {
+    const { data: payment, error: lookupError } = await supabase
+      .from("payments")
+      .select("id, user_id, provider, status, checkout_session_id")
+      .eq("id", paymentId)
+      .eq("user_id", userId)
+      .eq("provider", "paymongo")
+      .maybeSingle();
+
+    if (lookupError) throw lookupError;
+
+    if (!payment) {
+      return res.status(404).json({
+        message: "Payment was not found.",
+      });
+    }
+
+    if (payment.status === "paid") {
+      return res.json({
+        message: "This payment has already succeeded.",
+        status: "paid",
+      });
+    }
+
+    if (payment.status === "failed") {
+      return res.json({
+        message: "This payment has already failed.",
+        status: "failed",
+      });
+    }
+
+    if (!payment.checkout_session_id) {
+      return res.status(409).json({
+        message: "No PayMongo checkout session is linked to this payment.",
+        status: payment.status,
+      });
+    }
+
+    // Ask PayMongo to expire the session.
+    const expireResponse = await fetch(
+      `https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(payment.checkout_session_id)}/expire`,
+      {
+        method: "POST",
+        headers: {
+          Authorization:
+            "Basic " +
+            Buffer.from(`${secretKey}:`).toString("base64"),
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const expireResult = await expireResponse.json();
+
+    if (!expireResponse.ok) {
+      console.error("PayMongo expire checkout error:", expireResult);
+
+      // Do not mark a payment failed just because the expiration
+      // request failed. It could still be paid.
+      return res.status(502).json({
+        message:
+          "PayMongo could not confirm checkout expiration. Your payment remains pending until its status can be verified.",
+        status: "pending",
+      });
+    }
+
+    const sessionStatus = String(
+      expireResult.data?.attributes?.status || ""
+    ).toLowerCase();
+
+    if (sessionStatus === "paid") {
+      return res.json({
+        message: "PayMongo confirms that this payment succeeded.",
+        status: "paid",
+      });
+    }
+
+    if (sessionStatus !== "expired") {
+      return res.status(409).json({
+        message:
+          "PayMongo has not confirmed that this checkout has expired. The payment remains pending.",
+        status: "pending",
+      });
+    }
+
+    // Only mark failed after PayMongo confirms the session expired.
+    const { data: updatedPayment, error: updateError } = await supabase
+      .from("payments")
+      .update({
+        status: "failed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", paymentId)
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .select("id, status")
+      .maybeSingle();
+
+    if (updateError) throw updateError;
+
+    if (!updatedPayment) {
+      // Re-read in case a payment webhook updated it at the same time.
+      const { data: latestPayment, error: latestError } = await supabase
+        .from("payments")
+        .select("status")
+        .eq("id", paymentId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (latestError) throw latestError;
+
+      return res.json({
+        message: "The payment status has already changed.",
+        status: latestPayment?.status || "pending",
+      });
+    }
+
+    return res.json({
+      message: "Checkout expired. Payment marked as failed.",
+      status: "failed",
+    });
+  } catch (error) {
+    console.error("Fail checkout error:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to verify the checkout result.",
     });
   }
 });
@@ -1305,7 +1432,6 @@ function verifyPayMongoSignature(req) {
     return false;
   }
 
-  // Test mode uses "te"; live mode uses "li".
   const receivedSignature = parts.te || parts.li;
 
   const expectedSignature = crypto
@@ -1313,13 +1439,7 @@ function verifyPayMongoSignature(req) {
     .update(`${parts.t}.${req.rawBody.toString("utf8")}`)
     .digest();
 
-  let receivedBuffer;
-
-  try {
-    receivedBuffer = Buffer.from(receivedSignature, "hex");
-  } catch {
-    return false;
-  }
+  const receivedBuffer = Buffer.from(receivedSignature, "hex");
 
   return (
     receivedBuffer.length === expectedSignature.length &&
@@ -1336,24 +1456,24 @@ app.post("/api/webhooks/paymongo", async (req, res) => {
   }
 
   const envelope = req.body?.data?.attributes;
+  const eventType = envelope?.type;
+  const session = envelope?.data;
+
   console.log("PayMongo webhook event:", {
-    eventType: envelope?.type,
-    sessionId: envelope?.data?.id,
-    referenceNumber: envelope?.data?.attributes?.reference_number,
+    eventType,
+    sessionId: session?.id,
+    referenceNumber: session?.attributes?.reference_number,
     livemode: envelope?.livemode,
   });
 
-  const eventType = envelope?.type;
-
+  // This handler processes successful Checkout Sessions.
+  // Other events are acknowledged but do not activate subscriptions.
   if (eventType !== "checkout_session.payment.paid") {
     return res.status(200).json({
       received: true,
       ignored: true,
     });
   }
-
-  // PayMongo sends the checkout session inside attributes.data.
-  const session = envelope?.data;
 
   if (!session || session.type !== "checkout_session") {
     return res.status(400).json({
@@ -1364,8 +1484,6 @@ app.post("/api/webhooks/paymongo", async (req, res) => {
   const attributes = session.attributes || {};
   const paymentId = attributes.reference_number;
   const metadata = attributes.metadata || {};
-
-  // This backend currently creates test-mode checkout sessions only.
   const secretKey = process.env.PAYMONGO_SECRET_KEY;
   const isLive = attributes.livemode === true;
 
@@ -1400,7 +1518,7 @@ app.post("/api/webhooks/paymongo", async (req, res) => {
     : [];
 
   const paidPayment = payments.find(
-    (payment) => payment?.attributes?.status === "paid"
+    (item) => item?.attributes?.status === "paid"
   );
 
   if (!paidPayment) {
@@ -1446,8 +1564,8 @@ app.post("/api/webhooks/paymongo", async (req, res) => {
       message: "Paid amount does not match the Business plan.",
     });
   }
+
   try {
-    // Confirm that this checkout matches our stored pending payment.
     const { data: payment, error: lookupError } = await supabase
       .from("payments")
       .select(
@@ -1491,8 +1609,6 @@ app.post("/api/webhooks/paymongo", async (req, res) => {
         p_paid_at: paidAt,
       }
     );
-
-if (processError) throw processError;
 
     if (processError) throw processError;
 
