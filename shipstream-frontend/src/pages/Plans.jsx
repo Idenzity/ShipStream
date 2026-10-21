@@ -50,7 +50,7 @@ function Plans() {
     setCheckoutError("");
 
     const response = await fetch(
-      "http://localhost:5000/api/billing/checkout",
+      "${API_URL}/api/auth//billing/checkout",
       {
         method: "POST",
         credentials: "include",

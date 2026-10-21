@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -1637,6 +1638,27 @@ app.use("/api", (req, res) => {
   res.status(404).json({ message: "API endpoint not found." });
 });
 
-app.listen(PORT, () => {
-  console.log(`ShipStream API running on http://localhost:${PORT}`);
+// Handle unknown API routes.
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    message: "API endpoint not found.",
+  });
+});
+
+// Serve the built React frontend.
+const frontendDist = path.join(
+  __dirname,
+  "../shipstream-frontend/dist"
+);
+
+app.use(express.static(frontendDist));
+
+// Support React Router routes.
+app.get("/{*path}", (req, res) => {
+  res.sendFile(path.join(frontendDist, "index.html"));
+});
+
+// Start the server.
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`ShipStream server running on port ${PORT}`);
 });

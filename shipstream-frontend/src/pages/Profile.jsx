@@ -13,7 +13,8 @@ function Profile() {
     async function loadSubscription() {
       try {
         const API_URL =
-          import.meta.env.VITE_API_URL || "http://localhost:5000";
+          import.meta.env.VITE_API_URL ||
+          (import.meta.env.DEV ? "http://localhost:5000" : "");
 
         const response = await fetch(
           `${API_URL}/api/billing/subscription`,
