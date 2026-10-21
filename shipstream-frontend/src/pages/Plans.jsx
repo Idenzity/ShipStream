@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:5000" : "");
+
 const plans = [
   {
     id: "free",
@@ -50,7 +54,7 @@ function Plans() {
     setCheckoutError("");
 
     const response = await fetch(
-      "${API_URL}/api/auth//billing/checkout",
+      `${API_URL}/api/billing/checkout`,
       {
         method: "POST",
         credentials: "include",
