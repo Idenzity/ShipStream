@@ -98,7 +98,7 @@ function Register() {
 
     try {
       const response = await fetch(
-        "${API_URL}/api/auth/register",
+        `${API_URL}/api/auth/register`,
         {
           method: "POST",
           headers: {
@@ -108,6 +108,14 @@ function Register() {
           body: JSON.stringify(formData),
         }
       );
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (!contentType.includes("application/json")) {
+        throw new Error(
+          `The server returned a non-JSON response (${response.status}). Check the API URL and backend routes.`
+        );
+      }
 
       const data = await response.json();
 
