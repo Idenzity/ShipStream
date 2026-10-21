@@ -1180,9 +1180,9 @@ app.post("/api/billing/checkout", requireAuth, async (req, res) => {
               ],
               payment_method_types: ["card", "gcash", "qrph"],
               success_url:
-                `${process.env.FRONTEND_URL}/billing?checkout=success`,
+                "https://shipstream-yy5o.onrender.com/billing?checkout=success",
               cancel_url:
-                `${process.env.FRONTEND_URL}/billing?checkout=failed&payment_id=${encodeURIComponent(paymentId)}`,
+                `https://shipstream-yy5o.onrender.com/billing?checkout=failed&payment_id=${paymentId}`,
               reference_number: paymentId,
               metadata: {
                 user_id: userId,
