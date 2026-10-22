@@ -131,7 +131,7 @@ function Register() {
         );
       }
 
-      navigate("/dashboard");
+      navigate("/plans");
 
     } catch (error) {
       setServerError(
