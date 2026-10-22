@@ -76,9 +76,11 @@ useEffect(() => {
       setCheckoutResult("failed");
 
       if (!paymentId) {
+        setCheckoutResult("");
         setCheckoutMessage(
-          "Checkout was not completed. Check your payment history or try again."
+          "Checkout was cancelled or not completed. Check your payment history or try again.."
         );
+        
       } else {
         try {
           const response = await fetch(
@@ -135,7 +137,11 @@ useEffect(() => {
       !cancelled &&
       (checkout === "success" || checkout === "failed")
     ) {
-      navigate("/billing", { replace: true });
+      window.history.replaceState(
+        {},
+        "",
+        window.location.pathname
+      );
     }
   }
 
