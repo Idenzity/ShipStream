@@ -153,42 +153,41 @@ useEffect(() => {
 }, [location.search, navigate]);
 
 const formatDate = (date) => {
-if (!date) return "Not applicable";
-return new Date(date).toLocaleDateString();
+  if (!date) return "Not applicable";
 };
 
 const formatPlan = (plan) => {
-if (!plan) return "Free";
-return plan.charAt(0).toUpperCase() + plan.slice(1);
+    if (!plan) return "Free";
+    return plan.charAt(0).toUpperCase() + plan.slice(1);
 };
 
 const formatStatus = (status) => {
-if (!status) return "Unknown";
-return status.charAt(0).toUpperCase() + status.slice(1);
+    if (!status) return "Unknown";
+    return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
 if (loading) {
-return (
-<main className="billing-page">
-<p>Loading your billing information...</p>
-</main>
-);
+  return (
+    <main className="billing-page">
+    <p>Loading your billing information...</p>
+    </main>  
+  );
 }
 
 if (error) {
-return (
-<main className="billing-page">
-<h1>Billing & Subscription</h1>
-<p role="alert">{error}</p>
-<button
-type="button"
-className="billing-back-button"
-onClick={() => navigate("/dashboard")}
->
-Back to Dashboard
-</button>
-</main>
-);
+  return (
+    <main className="billing-page">
+    <h1>Billing & Subscription</h1>
+    <p role="alert">{error}</p>
+    <button
+      type="button"
+      className="billing-back-button"
+      onClick={() => navigate("/dashboard")}
+    >
+    Back to Dashboard
+    </button>
+    </main>
+  );
 }
 
 const plan = formatPlan(subscription?.plan);
@@ -198,13 +197,13 @@ subscription?.plan?.toLowerCase() === "business" &&
 subscription?.status?.toLowerCase() === "active";
 
 return (
-<main className="billing-page">
-<header className="billing-header">
-<p className="billing-eyebrow">SHIPSTREAM BILLING</p>
-<h1>Billing & Subscription</h1>
-<p>
-Manage your ShipStream plan and review your payment history.
-</p>
+  <main className="billing-page">
+  <header className="billing-header">
+  <p className="billing-eyebrow">SHIPSTREAM BILLING</p>
+  <h1>Billing & Subscription</h1>
+  <p>
+    Manage your ShipStream plan and review your payment history.
+  </p>
 </header>
 
   {checkoutMessage && (
